@@ -169,6 +169,8 @@ class OutTable extends React.Component {
 			selectedKey: null,
 			showDetails: false,
 			dropdownOpen: false,
+			keyDropdownOpen: false,
+			selectedFilterKey: "Task ID"
 		}
 		this.filterData = this.filterData.bind(this);
 		this.combineData = this.combineData.bind(this);
@@ -177,9 +179,10 @@ class OutTable extends React.Component {
 		this.showDetailsView = this.showDetailsView.bind(this);
 		this.toggle = this.toggle.bind(this);
 		this.exportData = this.exportData.bind(this);
+		this.togglekeyDropdown = this.togglekeyDropdown.bind(this);
 	};
 
-	filterData(data) {
+	filterData(data, filterKey) {
 		const ids = []
 		const response = []
 		if(!(data && data.length)) {
@@ -187,8 +190,8 @@ class OutTable extends React.Component {
 		}
 		for(let i=0; i< data.length; i++) {
 			const obj = data[i];
-			if(obj["Task ID"] && ids.indexOf(obj["Task ID"]) === -1) {
-				ids.push(obj["Task ID"])
+			if(obj[filterKey] && ids.indexOf(obj[filterKey]) === -1) {
+				ids.push(obj[filterKey])
 			}
 		}
 		for(let i=0;i<ids.length; i++) {
@@ -198,7 +201,7 @@ class OutTable extends React.Component {
 			}
 			for(let j=0; j< data.length; j++) {
 				const obj = data[j];
-				if(obj["Task ID"] === ids[i]) {
+				if(obj[filterKey] === ids[i]) {
 					responseObj.value += obj["Sh"];
 				}
 			}
@@ -219,9 +222,9 @@ class OutTable extends React.Component {
 		return response;
 	}
 
-	processData(data) {
+	processData(data, filterKey) {
 		for(let i=0; i<data.length; i++) {
-			data[i].filteredData = this.filterData(data[i].data)
+			data[i].filteredData = this.filterData(data[i].data, filterKey)
 		}
 		this.setState({
 			combinedData: this.combineData(data),
@@ -233,7 +236,7 @@ class OutTable extends React.Component {
 		if(nextProps.data && nextProps.data.length && 
 			((this.props.data !== nextProps.data) || (this.props.data && this.props.data.length) !== nextProps.data.length)
 		) {
-			this.processData(nextProps.data)
+			this.processData(nextProps.data, "Task ID")
 		}
 	}
 
@@ -278,7 +281,7 @@ class OutTable extends React.Component {
 	showDetailsView(key) {
 		let list = [];
 		this.state.userWiseData && this.state.userWiseData.filter((data) => {
-			const obj = data.filteredData && data.filteredData.find((obj) => obj.key === key)
+			const obj = data.filteredData && data.filteredData.find((obj) => obj.key == key)
 
 			if(obj) {
 				list.push(<tr><td>{data.userName}</td><td>{parseFloat(obj.value).toFixed(1)}</td></tr>);
@@ -294,10 +297,23 @@ class OutTable extends React.Component {
 		})
 	}
 
+	togglekeyDropdown() {
+		this.setState({
+			keyDropdownOpen: !this.state.keyDropdownOpen
+		})
+	}
+
 	changeUser(user) {
 		this.setState({
 			selectedUser: user === 'all' ? null : user
 		})
+	}
+
+	changeKey(key) {
+		this.setState({
+			selectedFilterKey : key
+		})
+		this.processData(this.props.data, key);
 	}
 
 	render() {
@@ -319,7 +335,18 @@ class OutTable extends React.Component {
 			<div className="table-responsive" style={{"margin": "20px auto"}}>
 				
 				<div style={{"margin": "20px", float: "right"}}>
-					<div style={{display: "inline"}}>
+				<div style={{display: "inline"}}>
+						<Dropdown isOpen={this.state.keyDropdownOpen} toggle={this.togglekeyDropdown} style={{display: "inline-block"}}>
+							<DropdownToggle caret>
+								{this.state.selectedFilterKey || "Select Key"}
+							</DropdownToggle>
+							<DropdownMenu>
+								<DropdownItem selected onClick={() => this.changeKey("Task Id")} >Task ID</DropdownItem>
+								<DropdownItem onClick={() => this.changeKey("WP ID / RED")} >WP ID / RED</DropdownItem>
+							</DropdownMenu>
+						</Dropdown>
+					</div>
+					<div style={{display: "inline", "margin-left": "20px"}}>
 						<Dropdown isOpen={this.state.dropdownOpen} toggle={this.toggle} style={{display: "inline-block"}}>
 							<DropdownToggle caret>
 								{this.state.selectedUser || "Select Name"}
@@ -341,7 +368,7 @@ class OutTable extends React.Component {
 				
 				<Table bordered style={{"margin-top": "40px auto"}}>
 					<thead>
-						<tr><th>TASK ID</th><th>Σ H</th></tr>
+							<tr><th>{this.state.selectedFilterKey}</th><th>Σ H</th></tr>
 					</thead>
 					<tbody>
 						{keys.map((r,i) => <tr key={i}>
